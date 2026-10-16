@@ -17,6 +17,7 @@ import { VlmTriageReport } from '../../types/index.ts';
 import { sampleTriageCases, SampleImage } from '../../data/sampleImages.ts';
 import { IllustrationBadge } from '../common/IllustrationBadge.tsx';
 import { AiThoughtInspector } from '../common/AiThoughtInspector.tsx';
+import { InspectionViewport } from '../common/InspectionViewport.tsx';
 
 interface VlmTriageProps {
   onTriageCompleted: (report: VlmTriageReport, imageDataUrl: string) => void;
@@ -344,25 +345,15 @@ export const VlmTriage: React.FC<VlmTriageProps> = ({
           </label>
         </div>
 
-        {/* Selected Specimen Preview */}
-        <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 aspect-[4/3] max-h-[260px] flex items-center justify-center">
-          <img
-            src={displayImage}
-            alt="Pest or Sanitation Preview"
-            className="max-w-full max-h-full object-contain"
-          />
-          <div className="absolute bottom-2 left-2 right-2 bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-xl text-white text-[11px] flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <Camera className="w-3.5 h-3.5 text-sky-400" />
-              <span className="font-medium truncate max-w-[180px]">
-                {customUploadedImage ? 'Custom User Upload' : selectedSample?.title || 'Specimen'}
-              </span>
-            </span>
-            <span className="text-emerald-400 font-mono font-bold text-[10px] bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-500/30">
-              VLM Ready
-            </span>
-          </div>
-        </div>
+        {/* Professional Inspection Viewport (Guaranteed Rendering, NO broken image icon) */}
+        <InspectionViewport
+          customImage={customUploadedImage}
+          specimenType={selectedSample?.svgIconType || 'termite'}
+          title={customUploadedImage ? 'Custom User Photo Specimen' : selectedSample?.title || 'Specimen'}
+          subtitle={selectedSample?.subtitle || 'Live Optical Sensor Feed'}
+          statusBadge="VLM Ready"
+          locationTag={roomType}
+        />
 
         {/* Room / Context inputs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

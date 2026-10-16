@@ -15,6 +15,7 @@ import { PestIdResult } from '../../types/index.ts';
 import { samplePestSpecimens, SampleImage } from '../../data/sampleImages.ts';
 import { IllustrationBadge } from '../common/IllustrationBadge.tsx';
 import { AiThoughtInspector } from '../common/AiThoughtInspector.tsx';
+import { InspectionViewport } from '../common/InspectionViewport.tsx';
 
 export const PestIdentification: React.FC = () => {
   const [selectedSpecimen, setSelectedSpecimen] = useState<SampleImage | null>(samplePestSpecimens[0]);
@@ -305,12 +306,14 @@ export const PestIdentification: React.FC = () => {
           </label>
         </div>
 
-        <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 aspect-[4/3] max-h-[260px] flex items-center justify-center">
-          <img src={displayImage} alt="Pest Specimen" className="max-w-full max-h-full object-contain" />
-          <div className="absolute top-2 right-2 bg-emerald-500/90 text-white text-[10px] font-mono px-2 py-0.5 rounded-md font-bold">
-            Taxonomy Scan Ready
-          </div>
-        </div>
+        {/* Professional Inspection Viewport (Guaranteed Rendering, NO broken image icon) */}
+        <InspectionViewport
+          customImage={customImage}
+          specimenType={selectedSpecimen?.svgIconType || 'cockroach'}
+          title={customImage ? 'Custom Field Specimen Photo' : selectedSpecimen?.title || 'Specimen'}
+          subtitle={selectedSpecimen?.subtitle || 'Macro Optical Sensor Scan'}
+          statusBadge="Taxonomy Scan Ready"
+        />
 
         <div>
           <label className="text-[11px] font-bold text-slate-600">Field Harborage Notes</label>

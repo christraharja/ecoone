@@ -207,12 +207,10 @@ export const MapBooking: React.FC<MapBookingProps> = ({
             <div className="mt-4 bg-slate-50 rounded-2xl p-3.5 border border-slate-200/70 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <img
-                    src={activeBooking.assignedTechnician.avatar}
-                    alt={activeBooking.assignedTechnician.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-sky-400"
-                  />
-                  <div className="absolute -bottom-1 -right-1 bg-sky-500 text-white p-0.5 rounded-full">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-600 to-blue-500 text-white font-bold flex items-center justify-center border-2 border-sky-400 shadow-sm text-sm">
+                    BS
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 bg-sky-500 text-white p-0.5 rounded-full shadow-xs">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                   </div>
                 </div>

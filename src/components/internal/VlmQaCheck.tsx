@@ -18,6 +18,7 @@ import { VlmQaResult } from '../../types/index.ts';
 import { sampleQaPairs, SampleQaPair } from '../../data/sampleImages.ts';
 import { IllustrationBadge } from '../common/IllustrationBadge.tsx';
 import { AiThoughtInspector } from '../common/AiThoughtInspector.tsx';
+import { InspectionViewport } from '../common/InspectionViewport.tsx';
 import confetti from 'canvas-confetti';
 
 interface VlmQaCheckProps {
@@ -32,6 +33,8 @@ export const VlmQaCheck: React.FC<VlmQaCheckProps> = ({
   const [selectedPair, setSelectedPair] = useState<SampleQaPair>(sampleQaPairs[0]);
   const [beforeImage, setBeforeImage] = useState<string>(sampleQaPairs[0].beforeUrl);
   const [afterImage, setAfterImage] = useState<string>(sampleQaPairs[0].afterUrl);
+  const [customBeforeImage, setCustomBeforeImage] = useState<string | null>(null);
+  const [customAfterImage, setCustomAfterImage] = useState<string | null>(null);
   const [serviceType, setServiceType] = useState('Pest Elimination & Anti-Bacterial Sanitization');
   const [stationName, setStationName] = useState('Station B2 - Kitchen Perimeter Void');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -49,6 +52,7 @@ export const VlmQaCheck: React.FC<VlmQaCheckProps> = ({
       reader.onload = (event) => {
         const res = event.target?.result as string;
         setBeforeImage(res);
+        setCustomBeforeImage(res);
         setQaResult(null);
         setShowFailureModal(false);
       };
@@ -63,6 +67,7 @@ export const VlmQaCheck: React.FC<VlmQaCheckProps> = ({
       reader.onload = (event) => {
         const res = event.target?.result as string;
         setAfterImage(res);
+        setCustomAfterImage(res);
         setQaResult(null);
         setShowFailureModal(false);
       };
@@ -74,6 +79,8 @@ export const VlmQaCheck: React.FC<VlmQaCheckProps> = ({
     setSelectedPair(pair);
     setBeforeImage(pair.beforeUrl);
     setAfterImage(pair.afterUrl);
+    setCustomBeforeImage(null);
+    setCustomAfterImage(null);
     setServiceType(pair.serviceType);
     setStationName(pair.stationName);
     setQaResult(null);
@@ -257,12 +264,14 @@ export const VlmQaCheck: React.FC<VlmQaCheckProps> = ({
                 <input type="file" accept="image/*" onChange={handleUploadBefore} className="hidden" />
               </label>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 aspect-[4/3] flex items-center justify-center relative">
-              <img src={beforeImage} alt="Before Treatment" className="max-w-full max-h-full object-contain" />
-              <div className="absolute top-2 left-2 bg-slate-900/85 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[10px] font-bold uppercase tracking-wider">
-                Before Photo
-              </div>
-            </div>
+            <InspectionViewport
+              customImage={customBeforeImage}
+              specimenType="qa_dirty"
+              title="Pre-Treatment Inspection State"
+              subtitle="Baseline Contamination Audit"
+              statusBadge="Pre-Treatment"
+              className="aspect-[4/3] max-h-[220px]"
+            />
           </div>
 
           {/* 2. AFTER PHOTO */}
@@ -278,12 +287,14 @@ export const VlmQaCheck: React.FC<VlmQaCheckProps> = ({
                 <input type="file" accept="image/*" onChange={handleUploadAfter} className="hidden" />
               </label>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 aspect-[4/3] flex items-center justify-center relative">
-              <img src={afterImage} alt="After Treatment" className="max-w-full max-h-full object-contain" />
-              <div className="absolute top-2 left-2 bg-sky-600 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[10px] font-bold uppercase tracking-wider">
-                After Photo (For QA)
-              </div>
-            </div>
+            <InspectionViewport
+              customImage={customAfterImage}
+              specimenType={selectedPair.expectedOutcome === 'pass' ? 'qa_clean' : 'qa_dirty'}
+              title={selectedPair.expectedOutcome === 'pass' ? 'Hospital Grade Sanitized State' : 'Incomplete Treatment State'}
+              subtitle="Post-Treatment QA Verification"
+              statusBadge={selectedPair.expectedOutcome === 'pass' ? 'Clean Standard' : 'QA Rejected'}
+              className="aspect-[4/3] max-h-[220px]"
+            />
           </div>
         </div>
 

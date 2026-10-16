@@ -323,7 +323,12 @@ export const FeedbackPortal: React.FC<FeedbackPortalProps> = ({ bookingId = 'BK-
 
               {complaintPhoto ? (
                 <div className="relative rounded-xl overflow-hidden border border-rose-200 h-28 bg-black flex items-center justify-center">
-                  <img src={complaintPhoto} alt="Complaint Evidence" className="max-h-full object-contain" />
+                  <img
+                    src={complaintPhoto}
+                    alt="Complaint Evidence"
+                    onError={() => setComplaintPhoto(null)}
+                    className="max-h-full object-contain"
+                  />
                   <button
                     type="button"
                     onClick={() => setComplaintPhoto(null)}

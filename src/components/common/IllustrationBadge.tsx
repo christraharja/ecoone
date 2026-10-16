@@ -15,9 +15,10 @@ export const IllustrationBadge: React.FC<IllustrationBadgeProps> = ({
   imageUrl
 }) => {
   const [imgFailed, setImgFailed] = React.useState(false);
+  const isRealUserPhoto = imageUrl && (imageUrl.startsWith('blob:') || (imageUrl.startsWith('data:image/') && !imageUrl.includes('image/svg')));
 
-  // If we have an image URL and it hasn't failed, try to render the img
-  if (imageUrl && !imgFailed) {
+  // If we have a real user photo and it hasn't failed, render the img
+  if (isRealUserPhoto && !imgFailed) {
     return (
       <div className={`relative overflow-hidden bg-slate-900 rounded-xl flex items-center justify-center ${className}`}>
         <img
