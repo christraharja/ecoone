@@ -9,12 +9,14 @@ interface InternalAppProps {
   stations: StationCheckIn[];
   onStationVerified: (station: StationCheckIn) => void;
   bookingId?: string;
+  onOpenMobileSignOff?: (stationId: string) => void;
 }
 
 export const InternalApp: React.FC<InternalAppProps> = ({
   stations,
   onStationVerified,
-  bookingId = 'BK-9402'
+  bookingId = 'BK-9402',
+  onOpenMobileSignOff
 }) => {
   const [activeTab, setActiveTab] = useState<'qa' | 'pestId' | 'qr'>('qa');
 
@@ -81,6 +83,7 @@ export const InternalApp: React.FC<InternalAppProps> = ({
             stations={stations}
             onStationVerified={onStationVerified}
             bookingId={bookingId}
+            onOpenMobileSignOff={onOpenMobileSignOff}
           />
         )}
       </main>

@@ -10,6 +10,7 @@ import { InternalApp } from './components/internal/InternalApp.tsx';
 import { DeviceFrame } from './components/common/DeviceFrame.tsx';
 import { Booking, StationCheckIn } from './types/index.ts';
 import { defaultBooking, defaultStations } from './data/defaultData.ts';
+import { MobileScanSignOff } from './components/internal/MobileScanSignOff.tsx';
 import { QrCode, ShieldCheck, HardHat, User, Sparkles, RefreshCw } from 'lucide-react';
 
 export default function App() {
@@ -32,6 +33,15 @@ export default function App() {
     }
   });
   const [lastSyncNotice, setLastSyncNotice] = useState<string | null>(null);
+
+  // URL query parameter for phone camera QR scans (?scan=ECO-ZONE-B2)
+  const [scannedStationId, setScannedStationId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('scan') || params.get('station') || null;
+    }
+    return null;
+  });
 
   // Fetch initial data from server (graceful fallback on Vercel)
   const loadData = async () => {
@@ -167,20 +177,40 @@ export default function App() {
 
       {/* App Body (Either inside mobile phone frame or fluid responsive container) */}
       <div className="flex-1">
-        <DeviceFrame isFrameEnabled={isMobileFrame} appMode={appMode}>
-          {appMode === 'customer' ? (
-            <CustomerApp
-              activeBooking={activeBooking}
-              onBookingCreated={handleBookingCreated}
-            />
-          ) : (
-            <InternalApp
-              stations={stations}
-              onStationVerified={handleStationVerified}
-              bookingId={activeBooking?.id || 'BK-9402'}
-            />
-          )}
-        </DeviceFrame>
+        {scannedStationId ? (
+          <MobileScanSignOff
+            stationId={scannedStationId}
+            stations={stations}
+            onSignOffCompleted={(updated) => {
+              handleStationVerified(updated);
+            }}
+            onExit={() => {
+              setScannedStationId(null);
+              if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('scan');
+                url.searchParams.delete('station');
+                window.history.replaceState({}, '', url.pathname);
+              }
+            }}
+          />
+        ) : (
+          <DeviceFrame isFrameEnabled={isMobileFrame} appMode={appMode}>
+            {appMode === 'customer' ? (
+              <CustomerApp
+                activeBooking={activeBooking}
+                onBookingCreated={handleBookingCreated}
+              />
+            ) : (
+              <InternalApp
+                stations={stations}
+                onStationVerified={handleStationVerified}
+                bookingId={activeBooking?.id || 'BK-9402'}
+                onOpenMobileSignOff={(stId) => setScannedStationId(stId)}
+              />
+            )}
+          </DeviceFrame>
+        )}
       </div>
     </div>
   );

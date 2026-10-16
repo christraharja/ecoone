@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   QrCode,
   Camera,
@@ -15,10 +15,12 @@ import {
   X,
   User,
   PenTool,
-  ToggleLeft,
-  ToggleRight,
-  AlertCircle
+  AlertCircle,
+  ExternalLink,
+  Smartphone,
+  Share2
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { StationCheckIn } from '../../types/index.ts';
 import { defaultStations } from '../../data/defaultData.ts';
 import confetti from 'canvas-confetti';
@@ -27,20 +29,26 @@ interface QrCheckInProps {
   stations: StationCheckIn[];
   onStationVerified: (station: StationCheckIn) => void;
   bookingId?: string;
+  onOpenMobileSignOff?: (stationId: string) => void;
 }
 
 export const QrCheckIn: React.FC<QrCheckInProps> = ({
   stations = [],
   onStationVerified,
-  bookingId = 'BK-9402'
+  bookingId = 'BK-9402',
+  onOpenMobileSignOff
 }) => {
-  // Ensure we always have safe stations data (never blank or undefined on Vercel)
+  // Ensure safe stations data
   const stationList = stations && stations.length > 0 ? stations : defaultStations;
 
-  const [activeStationIndex, setActiveStationIndex] = useState(0);
+  const [activeStationIndex, setActiveStationIndex] = useState(1); // Default to Kitchen (ECO-ZONE-B2)
   const selectedStation = stationList[activeStationIndex] || stationList[0] || defaultStations[0];
 
-  // Pop-up modal state for QR Sign-off
+  // Real phone camera-scannable QR code data URL
+  const [realQrDataUrl, setRealQrDataUrl] = useState<string>('');
+  const [scanTargetUrl, setScanTargetUrl] = useState<string>('');
+
+  // Pop-up modal state for in-app sign-off
   const [modalStation, setModalStation] = useState<StationCheckIn | null>(null);
   const [modalStatusCleaned, setModalStatusCleaned] = useState(true);
   const [modalCleanerName, setModalCleanerName] = useState('Budi Santoso');
@@ -48,68 +56,39 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
 
-  // Generate an authentic QR code SVG pattern based on text
-  const renderQrSvg = (codeText: string) => {
-    return (
-      <svg viewBox="0 0 100 100" className="w-full h-full p-2 bg-white rounded-xl shadow-inner">
-        {/* Corner positioning squares */}
-        <rect x="5" y="5" width="25" height="25" fill="#0f172a" rx="4" />
-        <rect x="9" y="9" width="17" height="17" fill="#ffffff" rx="2" />
-        <rect x="13" y="13" width="9" height="9" fill="#0284c7" rx="1.5" />
+  // Generate real standard QR code whenever the selected station changes
+  useEffect(() => {
+    if (!selectedStation) return;
 
-        <rect x="70" y="5" width="25" height="25" fill="#0f172a" rx="4" />
-        <rect x="74" y="9" width="17" height="17" fill="#ffffff" rx="2" />
-        <rect x="78" y="13" width="9" height="9" fill="#0284c7" rx="1.5" />
+    // Build the dynamic URL pointing to this app's domain with ?scan= parameter
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://eco-one.vercel.app';
+    const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+    const url = `${origin}${path}?scan=${selectedStation.stationId}`;
+    setScanTargetUrl(url);
 
-        <rect x="5" y="70" width="25" height="25" fill="#0f172a" rx="4" />
-        <rect x="9" y="74" width="17" height="17" fill="#ffffff" rx="2" />
-        <rect x="13" y="78" width="9" height="9" fill="#0284c7" rx="1.5" />
-
-        {/* Data matrix pattern modules */}
-        <rect x="35" y="10" width="6" height="6" fill="#0f172a" />
-        <rect x="45" y="10" width="6" height="6" fill="#0f172a" />
-        <rect x="55" y="10" width="6" height="6" fill="#0284c7" />
-
-        <rect x="35" y="20" width="6" height="6" fill="#0f172a" />
-        <rect x="45" y="20" width="6" height="6" fill="#0284c7" />
-        <rect x="55" y="20" width="6" height="6" fill="#0f172a" />
-
-        <rect x="10" y="38" width="6" height="6" fill="#0f172a" />
-        <rect x="20" y="38" width="6" height="6" fill="#0284c7" />
-        <rect x="30" y="38" width="6" height="6" fill="#0f172a" />
-        <rect x="40" y="38" width="6" height="6" fill="#0f172a" />
-        <rect x="50" y="38" width="6" height="6" fill="#0284c7" />
-        <rect x="60" y="38" width="6" height="6" fill="#0f172a" />
-        <rect x="70" y="38" width="6" height="6" fill="#0284c7" />
-        <rect x="80" y="38" width="6" height="6" fill="#0f172a" />
-
-        <rect x="10" y="48" width="6" height="6" fill="#0284c7" />
-        <rect x="30" y="48" width="6" height="6" fill="#0f172a" />
-        <rect x="40" y="48" width="6" height="6" fill="#0284c7" />
-        <rect x="60" y="48" width="6" height="6" fill="#0f172a" />
-        <rect x="70" y="48" width="6" height="6" fill="#0f172a" />
-        <rect x="80" y="48" width="6" height="6" fill="#0284c7" />
-
-        <rect x="10" y="58" width="6" height="6" fill="#0f172a" />
-        <rect x="20" y="58" width="6" height="6" fill="#0f172a" />
-        <rect x="40" y="58" width="6" height="6" fill="#0f172a" />
-        <rect x="50" y="58" width="6" height="6" fill="#0284c7" />
-        <rect x="70" y="58" width="6" height="6" fill="#0f172a" />
-
-        <rect x="38" y="72" width="6" height="6" fill="#0284c7" />
-        <rect x="48" y="72" width="6" height="6" fill="#0f172a" />
-        <rect x="58" y="72" width="6" height="6" fill="#0f172a" />
-        <rect x="78" y="72" width="6" height="6" fill="#0284c7" />
-
-        <rect x="38" y="82" width="6" height="6" fill="#0f172a" />
-        <rect x="48" y="82" width="6" height="6" fill="#0284c7" />
-        <rect x="68" y="82" width="6" height="6" fill="#0f172a" />
-        <rect x="78" y="82" width="6" height="6" fill="#0f172a" />
-      </svg>
+    // Generate real, 100% compliant QR code image that ANY phone camera detects instantly
+    QRCode.toDataURL(
+      url,
+      {
+        width: 320,
+        margin: 1,
+        color: {
+          dark: '#0f172a', // Deep slate for maximum phone camera contrast
+          light: '#ffffff'
+        },
+        errorCorrectionLevel: 'M'
+      },
+      (err, dataUrl) => {
+        if (!err && dataUrl) {
+          setRealQrDataUrl(dataUrl);
+        } else {
+          console.error('Failed to generate real QR code:', err);
+        }
+      }
     );
-  };
+  }, [selectedStation]);
 
-  // Open the pop-up modal when a QR code is scanned
+  // Open the pop-up modal when scanned or tapped
   const handleOpenScanModal = (station: StationCheckIn) => {
     setModalStation(station);
     setModalStatusCleaned(station.status === 'verified');
@@ -117,7 +96,7 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
     setModalNotes(station.notes || 'Station inspected and cleaned to Eco One standards.');
   };
 
-  // Confirm and sign off the station from the pop-up
+  // Confirm sign off
   const handleConfirmSignOff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalStation) return;
@@ -134,7 +113,6 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
     };
 
     try {
-      // Attempt backend API call, with graceful local fallback if offline or on Vercel
       await fetch('/api/stations/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -145,20 +123,18 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
         })
       }).catch(() => null);
 
-      // Update parent and local storage
       onStationVerified(updatedStation);
       setScanMessage(
         `${updatedStation.stationName} marked as [${modalStatusCleaned ? 'Cleaned & Treated' : 'Not Cleaned'}] and signed off by ${modalCleanerName}!`
       );
 
       if (modalStatusCleaned) {
-        confetti({ particleCount: 65, spread: 60, origin: { y: 0.6 } });
+        confetti({ particleCount: 75, spread: 60, origin: { y: 0.6 } });
       }
 
       setModalStation(null);
     } catch (err) {
       console.error('Sign-off error:', err);
-      // Still update UI gracefully
       onStationVerified(updatedStation);
       setModalStation(null);
     } finally {
@@ -177,29 +153,29 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
           <div className="flex items-center gap-2">
             <QrCode className="w-4 h-4 text-sky-400" />
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-sky-400">
-              Station QR Check-In & Sign-Off
+              Live Phone Camera Scannable QR
             </span>
           </div>
-          <span className="text-[10px] font-mono bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full">
-            Ticket #{bookingId}
+          <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-400/30">
+            Real QR Active
           </span>
         </div>
         <h2 className="text-xl font-extrabold text-white leading-tight">
-          Physical Station Check-In
+          QR Code Station Check-In
         </h2>
         <p className="text-xs text-slate-400 mt-1">
-          Scan the QR plate located at each room or property zone. A pop-up will appear allowing the assigned cleaner to toggle the cleaning status and sign off.
+          Point your physical phone camera at the QR code below. Your smartphone will recognize the link and open the dedicated mobile sign-off sheet for that zone!
         </p>
 
         {/* Progress Bar */}
         <div className="mt-4 pt-3 border-t border-slate-800 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-300 font-semibold">Overall Station Completion</span>
+            <span className="text-slate-300 font-semibold">Cleaned Zones Coverage</span>
             <span className="font-mono font-bold text-sky-400">
-              {verifiedCount} of {stationList.length} Zones Cleaned ({progressPercent}%)
+              {verifiedCount} of {stationList.length} Zones Complete ({progressPercent}%)
             </span>
           </div>
-          <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
@@ -216,7 +192,7 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
             <div>
               <p className="text-xs font-extrabold leading-tight">{scanMessage}</p>
               <p className="text-[11px] text-emerald-700 mt-0.5 font-mono">
-                Cryptographic timestamp broadcast to client live tracking app
+                Cryptographic timestamp synced with customer live tracking view
               </p>
             </div>
           </div>
@@ -230,64 +206,84 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
         </div>
       )}
 
-      {/* INTERACTIVE SCANNER VIEWFINDER BOX */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-            <Camera className="w-4 h-4 text-sky-600" />
-            <span>Active Camera Scanner</span>
-          </label>
-          <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-            Viewfinder Active
+      {/* 1. REAL PHONE-SCANNABLE QR CODE SHOWCASE */}
+      <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-md space-y-4 text-center">
+        <div className="flex items-center justify-between text-left">
+          <div>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+              Real Smartphone Camera Target
+            </span>
+            <h3 className="text-base font-extrabold text-slate-900 mt-1">
+              {selectedStation.stationName}
+            </h3>
+            <p className="text-xs text-slate-500">{selectedStation.propertyZone}</p>
+          </div>
+
+          <span className="text-xs font-mono font-bold bg-slate-900 text-white px-2.5 py-1 rounded-xl">
+            {selectedStation.stationId}
           </span>
         </div>
 
-        {/* Viewfinder box with laser sweep */}
-        <div className="relative w-full aspect-video sm:h-[240px] bg-slate-950 rounded-2xl overflow-hidden border-2 border-slate-800 flex items-center justify-center p-4">
-          {/* Target Corner Reticles */}
-          <div className="absolute top-4 left-4 w-7 h-7 border-t-3 border-l-3 border-sky-400 rounded-tl-lg" />
-          <div className="absolute top-4 right-4 w-7 h-7 border-t-3 border-r-3 border-sky-400 rounded-tr-lg" />
-          <div className="absolute bottom-4 left-4 w-7 h-7 border-b-3 border-l-3 border-sky-400 rounded-bl-lg" />
-          <div className="absolute bottom-4 right-4 w-7 h-7 border-b-3 border-r-3 border-sky-400 rounded-br-lg" />
-
-          {/* Animated red laser line */}
-          <div className="absolute inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-rose-500 to-transparent shadow-[0_0_12px_#f43f5e] animate-bounce" />
-
-          {/* Center target preview displaying the current station QR code */}
-          <div
-            onClick={() => handleOpenScanModal(selectedStation)}
-            className="w-32 h-32 relative z-10 flex flex-col items-center justify-center bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20 cursor-pointer hover:scale-105 transition-transform"
-          >
-            <div className="w-24 h-24">
-              {renderQrSvg(selectedStation.qrPayload)}
+        {/* Real QR Code Display */}
+        <div className="p-4 bg-slate-50 rounded-2xl border-2 border-slate-200 inline-flex flex-col items-center justify-center max-w-[280px] mx-auto shadow-inner">
+          {realQrDataUrl ? (
+            <div className="relative group">
+              <img
+                src={realQrDataUrl}
+                alt={`Real QR Code for ${selectedStation.stationName}`}
+                className="w-56 h-56 rounded-xl object-contain bg-white p-2 shadow-sm"
+              />
+              <div className="absolute inset-0 bg-sky-500/10 rounded-xl pointer-events-none border border-sky-400/30" />
             </div>
-            <span className="text-[9px] font-mono font-bold text-sky-300 mt-1 uppercase">
-              {selectedStation.stationId}
-            </span>
-          </div>
+          ) : (
+            <div className="w-56 h-56 flex items-center justify-center bg-white rounded-xl">
+              <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
 
-          <div className="absolute bottom-2 inset-x-4 flex items-center justify-between text-[10px] text-slate-400 font-mono">
-            <span>STATION: {selectedStation.stationId}</span>
-            <span>TAP QR TO SCAN & SIGN OFF</span>
+          <div className="mt-3 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
+            <Smartphone className="w-4 h-4 text-sky-500 animate-bounce" />
+            <span>Scan with your physical phone camera</span>
           </div>
         </div>
 
-        {/* Action Button: Scan QR Code & Open Pop-up */}
-        <button
-          type="button"
-          onClick={() => handleOpenScanModal(selectedStation)}
-          className="w-full bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-sm py-3.5 px-4 rounded-2xl shadow-lg shadow-sky-500/25 hover:from-sky-600 hover:to-blue-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <QrCode className="w-5 h-5" />
-          <span>Scan QR & Open Sign-Off Form ({selectedStation.stationName.split(' ')[0]})</span>
-        </button>
+        {/* Action Buttons: Direct Mobile Test & In-App Pop-up */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenMobileSignOff) {
+                onOpenMobileSignOff(selectedStation.stationId);
+              } else {
+                handleOpenScanModal(selectedStation);
+              }
+            }}
+            className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold text-xs py-3 px-3 rounded-2xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <ExternalLink className="w-4 h-4" />
+            <span>Simulate Mobile Scan on Screen</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenScanModal(selectedStation)}
+            className="w-full bg-slate-900 hover:bg-black text-white font-bold text-xs py-3 px-3 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <PenTool className="w-4 h-4 text-emerald-400" />
+            <span>Open In-App Sign-Off Pop-up</span>
+          </button>
+        </div>
+
+        <p className="text-[10px] text-slate-400">
+          * Encoded URL: <code className="font-mono text-slate-600">{scanTargetUrl}</code>
+        </p>
       </div>
 
-      {/* PROPERTY STATION LIST (Users can tap any station to open the pop-up) */}
+      {/* 2. STATION MANIFEST (Tap any station to update QR code & open pop-up) */}
       <div className="space-y-2.5">
         <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center justify-between">
-          <span>Client Property Station Manifest</span>
-          <span className="text-slate-400 font-normal">tap station to sign off</span>
+          <span>Select Property Zone QR Code</span>
+          <span className="text-slate-400 font-normal">tap to switch target</span>
         </label>
 
         <div className="space-y-2">
@@ -299,17 +295,26 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
                 key={st.id}
                 onClick={() => {
                   setActiveStationIndex(index);
-                  handleOpenScanModal(st);
                 }}
                 className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start justify-between ${
-                  isVerified
-                    ? 'bg-emerald-50/70 border-emerald-200 hover:bg-emerald-50'
+                  isSelected
+                    ? 'ring-2 ring-sky-500 bg-sky-50/70 border-sky-300 shadow-sm'
+                    : isVerified
+                    ? 'bg-emerald-50/50 border-emerald-200 hover:bg-emerald-50'
                     : 'bg-white border-slate-200 hover:border-slate-300'
-                } ${isSelected ? 'ring-2 ring-sky-400' : ''}`}
+                }`}
               >
                 <div className="flex items-start gap-3 min-w-0">
-                  <div className="w-12 h-12 flex-shrink-0 bg-white border border-slate-200 rounded-xl p-1 shadow-sm flex items-center justify-center">
-                    {renderQrSvg(st.qrPayload)}
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-bold font-mono ${
+                      isSelected
+                        ? 'bg-sky-500 text-white'
+                        : isVerified
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    <QrCode className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -346,11 +351,12 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
+                      setActiveStationIndex(index);
                       handleOpenScanModal(st);
                     }}
                     className="text-[10px] font-bold bg-slate-900 hover:bg-black text-white px-2.5 py-1 rounded-xl shadow-xs transition-colors"
                   >
-                    Scan & Sign
+                    Sign Off
                   </button>
                 </div>
               </div>
@@ -359,7 +365,7 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
         </div>
       </div>
 
-      {/* POP-UP MODAL: DISPLAYING PLACE INFO, CLEANED TOGGLE, CLEANER NAME & SIGN-OFF */}
+      {/* POP-UP MODAL: PLACE INFO, STATUS TOGGLE, CLEANER NAME & SIGN-OFF */}
       {modalStation && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
@@ -371,7 +377,7 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-600">
-                    Station QR Verified
+                    Station Sign-Off Form
                   </span>
                   <h3 className="text-base font-extrabold text-slate-900 leading-tight">
                     {modalStation.stationName}
@@ -405,10 +411,8 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">GPS Coordinates:</span>
-                  <span className="font-mono text-slate-700 text-[11px]">
-                    {modalStation.coordinates.lat}°, {modalStation.coordinates.lng}°
-                  </span>
+                  <span className="text-slate-500">Property:</span>
+                  <span className="text-slate-800 font-medium">Green Valley Villas, Block C #42</span>
                 </div>
               </div>
             </div>
@@ -479,7 +483,7 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
                 />
               </div>
 
-              {/* Quick sign-off tags */}
+              {/* Quick tags */}
               <div className="flex flex-wrap items-center gap-1.5">
                 {[
                   '100% Sanitized',
@@ -491,7 +495,7 @@ export const QrCheckIn: React.FC<QrCheckInProps> = ({
                     key={tag}
                     type="button"
                     onClick={() => setModalNotes((prev) => (prev ? `${prev} • ${tag}` : tag))}
-                    className="text-[10px] bg-slate-100 hover:bg-sky-50 hover:text-sky-700 text-slate-600 font-medium px-2 py-0.5 rounded-full border border-slate-200 transition-colors"
+                    className="text-[10px] bg-slate-100 hover:bg-sky-50 hover:text-sky-700 text-slate-600 font-medium px-2 py-0.5 rounded-full border border-slate-200 transition-colors cursor-pointer"
                   >
                     + {tag}
                   </button>
