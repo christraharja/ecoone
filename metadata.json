@@ -1,0 +1,6 @@
+{
+  "name": "Eco One - Pest Control & Sanitation",
+  "description": "Mobile application for Eco One pest control and sanitation with dual Customer and Technician interfaces, map booking, VLM visual triage, QA before/after verification, and QR station check-in.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
