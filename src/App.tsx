@@ -9,35 +9,53 @@ import { CustomerApp } from './components/customer/CustomerApp.tsx';
 import { InternalApp } from './components/internal/InternalApp.tsx';
 import { DeviceFrame } from './components/common/DeviceFrame.tsx';
 import { Booking, StationCheckIn } from './types/index.ts';
+import { defaultBooking, defaultStations } from './data/defaultData.ts';
 import { QrCode, ShieldCheck, HardHat, User, Sparkles, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [appMode, setAppMode] = useState<'customer' | 'internal'>('customer');
   const [isMobileFrame, setIsMobileFrame] = useState(false);
-  const [activeBooking, setActiveBooking] = useState<Booking | null>(null);
-  const [stations, setStations] = useState<StationCheckIn[]>([]);
+  const [activeBooking, setActiveBooking] = useState<Booking | null>(() => {
+    try {
+      const saved = localStorage.getItem('eco_one_booking');
+      return saved ? JSON.parse(saved) : defaultBooking;
+    } catch {
+      return defaultBooking;
+    }
+  });
+  const [stations, setStations] = useState<StationCheckIn[]>(() => {
+    try {
+      const saved = localStorage.getItem('eco_one_stations');
+      return saved ? JSON.parse(saved) : defaultStations;
+    } catch {
+      return defaultStations;
+    }
+  });
   const [lastSyncNotice, setLastSyncNotice] = useState<string | null>(null);
 
-  // Fetch initial data from server
+  // Fetch initial data from server (graceful fallback on Vercel)
   const loadData = async () => {
     try {
       const [bookingsRes, stationsRes] = await Promise.all([
-        fetch('/api/bookings'),
-        fetch('/api/stations')
+        fetch('/api/bookings').catch(() => null),
+        fetch('/api/stations').catch(() => null)
       ]);
 
-      const bookingsData = await bookingsRes.json();
-      const stationsData = await stationsRes.json();
-
-      if (bookingsData.success && bookingsData.bookings?.length > 0) {
-        setActiveBooking(bookingsData.bookings[0]);
+      if (bookingsRes && bookingsRes.ok) {
+        const bookingsData = await bookingsRes.json().catch(() => null);
+        if (bookingsData?.success && bookingsData.bookings?.length > 0) {
+          setActiveBooking(bookingsData.bookings[0]);
+        }
       }
 
-      if (stationsData.success && stationsData.stations) {
-        setStations(stationsData.stations);
+      if (stationsRes && stationsRes.ok) {
+        const stationsData = await stationsRes.json().catch(() => null);
+        if (stationsData?.success && stationsData.stations?.length > 0) {
+          setStations(stationsData.stations);
+        }
       }
     } catch (err) {
-      console.error('Failed to load initial data:', err);
+      console.log('Running in local/static mode:', err);
     }
   };
 
